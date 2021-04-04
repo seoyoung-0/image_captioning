@@ -7,11 +7,10 @@ from scipy.misc import imread, imresize
 from tqdm import tqdm
 from collections import Counter
 from random import seed, choice, sample
-
+from tokenizer import Tokenizer
 
 # OK
-def create_input_files(dataset, karpathy_json_path, image_folder, captions_per_image, min_word_freq, output_folder,
-                       max_len=100):
+def create_input_files(dataset, karpathy_json_path, image_folder, captions_per_image, min_word_freq, output_folder, max_len=100):
     """
     Creates input files for training, validation, and test data.
 
@@ -24,85 +23,68 @@ def create_input_files(dataset, karpathy_json_path, image_folder, captions_per_i
     :param max_len: don't sample captions longer than this length
     """
 
-    # 매개변수 제한
-    # dataset이 "coco", "flickr8k", "flickr30k"가 아니라면 AssertionError 발생
+    tokenizer = Tokenizer()
+    word_map = tokenizer.get_word_map()
+
     assert dataset in {'coco', 'flickr8k', 'flickr30k'}
 
     # Read Karpathy JSON
-    # json file 읽기
     with open(karpathy_json_path, 'r') as j:
-        data = json.load(j)
+        datas = json.load(j, encoding="utf-8")
 
     # Read image paths and captions for each image
-    train_image_paths = []      # train image path
-    train_image_captions = []   # train image caption
-    val_image_paths = []        # validation image path
-    val_image_captions = []     # validation image caption
-    test_image_paths = []       # test image path
-    test_image_captions = []    # test image caption
-    word_freq = Counter()       # word frequency
+    train_image_paths = []
+    train_image_captions = []
+    val_image_paths = []
+    val_image_captions = []
+    word_freq = Counter()
 
-    for img in data['images']:
+    for data in datas:
         captions = []
-        for c in img['sentences']:
-            # Update word frequency (각 token의 등장 횟수 +1)
-            word_freq.update(c['tokens'])
-            # captions의 길이를 제한 (max_len를 넘는 경우 뒤의 caption 잘라버림)
-            # 근데 왜 caption에는 포함하지 않는데 word_freq에는 포함시키는 걸까?
-            if len(c['tokens']) <= max_len:
-                captions.append(c['tokens'])
+        file_path = data.get("file_path", "")
+        mode = file_path.split("/")[0][:-4]
+        for caption in data.get("caption_ko", []):
+            # Update word frequency
+            tokens = tokenizer.tokenize(caption)
+            word_freq.update(tokens)
+            if len(tokens) <= max_len:
+                captions.append(tokens)
 
-        # caption의 길이가 0인 경우 데이터에 포함하지 않음
         if len(captions) == 0:
             continue
 
-        # 이미지의 전체 path 정보 추출
-        if dataset == 'coco':
-            path = os.path.join(image_folder, img['filepath'], img['filename'])
-        else:
-            path = os.path.join(image_folrder, img['filename'])
+        path = os.path.join(image_folder, file_path)
 
-        # train, validation, test data로 분리 (이미지의 경로 정보 + 캡션 정보)
-        if img['split'] in {'train', 'restval'}:
+        if mode == "train":
             train_image_paths.append(path)
             train_image_captions.append(captions)
-        elif img['split'] in {'val'}:
+        elif mode == "val":
             val_image_paths.append(path)
             val_image_captions.append(captions)
-        elif img['split'] in {'test'}:
-            test_image_paths.append(path)
-            test_image_captions.append(captions)
 
     # Sanity check
-    # path의 수와 caption의 수가 일치하지 않는 경우 AssertionErrror 발생
     assert len(train_image_paths) == len(train_image_captions)
     assert len(val_image_paths) == len(val_image_captions)
-    assert len(test_image_paths) == len(test_image_captions)
 
-    # Create word map
-    # 특정 token의 등장횟수가 min_word_freq 이상인 경우만 고려
-    words = [w for w in word_freq.keys() if word_freq[w] > min_word_freq]
-    # key: token, value: index
-    word_map = {k: v + 1 for v, k in enumerate(words)}
-    # <unk>, <start>, <end>, <pad> token 추가
-    word_map['<unk>'] = len(word_map) + 1
-    word_map['<start>'] = len(word_map) + 1
-    word_map['<end>'] = len(word_map) + 1
-    word_map['<pad>'] = 0
+
+    # words = [w for w in word_freq.keys() if word_freq[w] > min_word_freq]
+    # word_map = {k: v + 1 for v, k in enumerate(words)}
+    # word_map['<unk>'] = len(word_map) + 1
+    # word_map['<start>'] = len(word_map) + 1
+    # word_map['<end>'] = len(word_map) + 1
+    # word_map['<pad>'] = 0
 
     # Create a base/root name for all output files
     base_filename = dataset + '_' + str(captions_per_image) + '_cap_per_img_' + str(min_word_freq) + '_min_word_freq'
 
     # Save word map to a JSON
-    # word map -> key: token, value: index
     with open(os.path.join(output_folder, 'WORDMAP_' + base_filename + '.json'), 'w') as j:
         json.dump(word_map, j)
 
     # Sample captions for each image, save images to HDF5 file, and captions and their lengths to JSON files
     seed(123)
     for impaths, imcaps, split in [(train_image_paths, train_image_captions, 'TRAIN'),
-                                   (val_image_paths, val_image_captions, 'VAL'),
-                                   (test_image_paths, test_image_captions, 'TEST')]:
+                                   (val_image_paths, val_image_captions, 'VAL')]:
 
         with h5py.File(os.path.join(output_folder, split + '_IMAGES_' + base_filename + '.hdf5'), 'a') as h:
             # Make a note of the number of captions we are sampling per image
@@ -116,21 +98,20 @@ def create_input_files(dataset, karpathy_json_path, image_folder, captions_per_i
             enc_captions = []   # encoding된 caption 저장
             caplens = []        # caption의 길이 저장
 
-            # 데이터 처리
             for i, path in enumerate(tqdm(impaths)):
 
-                # 1. Sample captions
+                # Sample captions
                 if len(imcaps[i]) < captions_per_image:
                     # 임의의 (captions_per_image-len(captions[i])개 데이터 샘플링하여 추가 (데이터 수 늘리기)
                     captions = imcaps[i] + [choice(imcaps[i]) for _ in range(captions_per_image - len(imcaps[i]))]
                 else:
-                    # 임의의 captions_per_image 데이터를 샘플링 (데이터 수 줄이기)
+                    # 임의의 captions_per_image 데이터를 샘플링
                     captions = sample(imcaps[i], k=captions_per_image)
 
                 # Sanity check
                 assert len(captions) == captions_per_image
 
-                # 2. Read images
+                # Read images
                 # 이미지의 크기 조절 (3(C), 256(W), 256(H))
                 img = imread(impaths[i])
                 if len(img.shape) == 2:
@@ -141,17 +122,16 @@ def create_input_files(dataset, karpathy_json_path, image_folder, captions_per_i
                 assert img.shape == (3, 256, 256)
                 assert np.max(img) <= 255
 
-                # 3. Save image to HDF5 file
+                # Save image to HDF5 file
                 images[i] = img
 
-                # 4. 캡션 처리 (<start>, <end>, <pad>, <unk> token 추가)
+                # 캡션 처리 ([START], [END], [PAD], [UNK] token 추가)
                 for j, c in enumerate(captions):
                     # Encode captions
-                    # c -> 하나의 데이터에 대응되는 캡션 한 줄
-                    # caption 시작되기 전 <start> 넣어주고, 중간에는 본래 문장(이 때 대응되는 단어가 없다면 <unk>, 마지막에는 <end>
-                    # 이 때, max_len보다 caption의 길이가 짧다면 <pad> 추가
-                    enc_c = [word_map['<start>']] + [word_map.get(word, word_map['<unk>']) for word in c] + [
-                        word_map['<end>']] + [word_map['<pad>']] * (max_len - len(c))
+                    # caption 시작되기 전 [START] 넣어주고, 중간에는 본래 문장(이 때 대응되는 단어가 없다면 [UNK], 마지막에는 [END]
+                    # 이 때, max_len보다 caption의 길이가 짧다면 [PAD] 추가
+                    enc_c = [word_map['[START]']] + [word_map.get(word, word_map['[UNK]']) for word in c] + [
+                        word_map['[END]']] + [word_map['[PAD]']] * (max_len - len(c))
 
                     # Find caption lengths
                     c_len = len(c) + 2  # <start>, <end> token 개수 추가해준 것 같다.
@@ -170,7 +150,7 @@ def create_input_files(dataset, karpathy_json_path, image_folder, captions_per_i
                 json.dump(caplens, j)
 
 
-# OK
+# # OK
 def init_embedding(embeddings):
     """
     Fills embedding tensor with values from the uniform distribution.
@@ -189,7 +169,7 @@ def init_embedding(embeddings):
 
 
 # OK
-def load_embeddings(emb_file, word_map):
+def load_embeddings(emb_file=None, word_map=None):
     """
     Creates an embedding tensor for the specified word map, for loading into the model.
 
@@ -198,12 +178,12 @@ def load_embeddings(emb_file, word_map):
     :return: embeddings in the same order as the words in the word map, dimension of embeddings
     """
 
-    # Find embedding dimension
-    with open(emb_file, 'r') as f:
-        # 첫 번째 값은 word에 해당하기 때문에 -1을 빼주는 것
-        emb_dim = len(f.readline().split(' ')) - 1
+    tokenizer = Tokenizer()
 
-    vocab = set(word_map.keys())
+    # Find embedding dimension
+    pretrained_embedding = tokenizer.get_pretrained_embedding()
+    emb_dim = tokenizer.get_embedding_dim()
+    vocab = tokenizer.vocab.token_to_idx
 
     # Create tensor to hold embeddings, initialize
     # row -> vocab size
@@ -213,19 +193,9 @@ def load_embeddings(emb_file, word_map):
 
     # Read embedding file
     print("\nLoading embeddings...")
-    for line in open(emb_file, 'r'):
-        # line 예시 > "사과 0 1 5 9 7 5 6 1 7 4"
-        line = line.split(' ')  # ['사과', '0', '1', '5', '9', '7', '5', '6', '1', '7', '4']
-
-        emb_word = line[0]
-        embedding = list(map(lambda t: float(t), filter(lambda n: n and not n.isspace(), line[1:])))
-
-        # Ignore word if not in train_vocab (train vocabulary에 없다면 pass)
-        if emb_word not in vocab:
-            continue
-
-        # word index에 대응되는 row에 word embedding 값 대입
-        embeddings[word_map[emb_word]] = torch.FloatTensor(embedding)
+    for i in range(pretrained_embedding.num_embeddings):
+        vector = pretrained_embedding(torch.LongTensor([[i]]))
+        embeddings[i] = torch.reshape(vector, (-1,))
 
     return embeddings, emb_dim
 
