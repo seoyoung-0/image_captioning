@@ -4,6 +4,15 @@ import torchvision
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# Load pre-trained model tokenizer (KOBERT)
+tokenizer = Tokenizer()
+
+# Load pre-trained model (weights) (KOBERT)
+BertModel = get_pytorch_kobert_model()
+BertModel.eval()
+
+PAD_index = 1
+
 '''
     - resnet에서 뒤의 2개의 레이어 제거한 후, fine-tuning 진행하는 코드
     - fine-tuning 은 뒤의 5개 레이어에 대해서만 수행
@@ -27,7 +36,6 @@ class Encoder(nn.Module):
 
         # Resize image to fixed size to allow input images of variable size
         self.adaptive_pool = nn.AdaptiveAvgPool2d((encoded_image_size, encoded_image_size))
-
         self.fine_tune(True)
 
     def forward(self, images):
@@ -117,7 +125,7 @@ class DecoderWithAttention(nn.Module):
     Decoder.
     """
 
-    def __init__(self, attention_dim, embed_dim, decoder_dim, vocab_size, encoder_dim=2048, dropout=0.5):
+    def __init__(self, attention_dim, embed_dim, decoder_dim, vocab_size=7004, encoder_dim=2048, dropout=0.5, use_bert=True):
         """
         :param attention_dim: size of attention network
         :param embed_dim: embedding size
@@ -134,9 +142,13 @@ class DecoderWithAttention(nn.Module):
         self.decoder_dim = decoder_dim
         self.vocab_size = vocab_size
         self.dropout = dropout
+        self.use_bert = use_bert
+
+        if self.use_bert:
+            self.embed_dim = 768
+            self.vocab_size = tokenizer.get_vocab_size()  # 7004
 
         self.attention = Attention(encoder_dim, decoder_dim, attention_dim)  # attention network
-
         self.embedding = nn.Embedding(vocab_size, embed_dim)  # embedding layer
         self.dropout = nn.Dropout(p=self.dropout)  # dropout layer
         self.decode_step = nn.LSTMCell(embed_dim + encoder_dim, decoder_dim, bias=True)  # decoding LSTMCell
@@ -212,7 +224,25 @@ class DecoderWithAttention(nn.Module):
         encoded_captions = encoded_captions[sort_ind]
 
         # Embedding
-        embeddings = self.embedding(encoded_captions)  # (batch_size, max_caption_length, embed_dim)
+        if not self.use_bert:
+            embeddings = self.embedding(encoded_captions)  # (batch_size, max_caption_length, embed_dim)
+        else:
+            embeddings = []
+            for cap_idx in encoded_captions:
+                while len(cap_idx) < max_dec_len:
+                    cap_idx.append(PAD_index)  # PAD (1)
+
+                cap = " ".join(tokenizer.convert_ids_to_tokens(cap_idx))
+
+                tokenized_cap = tokenizer.tokenize(cap)
+                indexed_tokens = tokenizer.convert_tokens_to_ids(tokenized_cap)
+                tokens_tensor = torch.tensor([indexed_tokens]).to(device)
+
+                bert_embedding, _ = BertModel(tokens_tensor)
+                bert_embedding = bert_embedding.squeeze(0)
+                embeddings.append(embeddings)
+
+            embeddings = torch.stack(embeddings)
 
         # Initialize LSTM state
         # encoder_out : (batch_size, num_pixels, encoder_dim)

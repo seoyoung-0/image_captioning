@@ -11,7 +11,7 @@ from utils import *
 from nltk.translate.bleu_score import corpus_bleu
 
 # Data parameters
-data_folder = '../../1. data/json'  # folder with data files saved by create_input_files.py
+data_folder = '../../1. data_v2/json'  # folder with data files saved by create_input_files.py
 data_name = 'coco_5_cap_per_img_5_min_word_freq'  # base name shared by data files
 
 # Model parameters
@@ -327,7 +327,7 @@ def validate(val_loader, encoder, decoder, criterion):
             for j in range(allcaps.shape[0]):
                 img_caps = allcaps[j].tolist()
                 img_captions = list(
-                    map(lambda c: [w for w in c if w not in {word_map['<start>'], word_map['<pad>']}],
+                    map(lambda c: [w for w in c if w not in {word_map['[CLS]'], word_map['[PAD]']}],
                         img_caps))  # remove <start> and pads
                 references.append(img_captions)
 
