@@ -8,18 +8,22 @@ class Tokenizer:
     sp = SentencepieceTokenizer(tok_path)
 
     def __init__(self):
-        self.vocab.token_to_idx['[SOS]'] = len(self.vocab)
-        self.vocab.token_to_idx['[EOS]'] = len(self.vocab)+1
-        self.vocab.idx_to_token.extend(['[SOS]', '[EOS]'])
+        pass
 
     def tokenize(self, sentence: str):
         return self.sp(sentence)
 
-    def tok2idx(self, tokens: list):
+    def convert_ids_to_tokens(self, ids: list):
+        return [self.vocab.idx_to_token[idx] for idx in ids]
+
+    def convert_tokens_to_ids(self, tokens: list):
         return [self.vocab.token_to_idx[token] for token in tokens]
 
     def get_word_map(self):
         return self.vocab.token_to_idx
+
+    def get_vocab_size(self):
+        return len(self.vocab.token_to_idx) # 7002
 
     def get_embedding_dim(self):
         return list(self.model.embeddings.children())[0].embedding_dim  # 768

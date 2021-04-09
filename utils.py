@@ -130,8 +130,8 @@ def create_input_files(dataset, karpathy_json_path, image_folder, captions_per_i
                     # Encode captions
                     # caption 시작되기 전 [START] 넣어주고, 중간에는 본래 문장(이 때 대응되는 단어가 없다면 [UNK], 마지막에는 [END]
                     # 이 때, max_len보다 caption의 길이가 짧다면 [PAD] 추가
-                    enc_c = [word_map['[SOS]']] + [word_map.get(word, word_map['[UNK]']) for word in c] + [
-                        word_map['[EOS]']] + [word_map['[PAD]']] * (max_len - len(c))
+                    enc_c = [word_map['[CLS]']] + [word_map.get(word, word_map['[UNK]']) for word in c] + [
+                        word_map['[SEP]']] + [word_map['[PAD]']] * (max_len - len(c))
 
                     # Find caption lengths
                     c_len = len(c) + 2  # <start>, <end> token 개수 추가해준 것 같다.
