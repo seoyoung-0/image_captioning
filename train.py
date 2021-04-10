@@ -9,9 +9,10 @@ from models import Encoder, DecoderWithAttention
 from datasets import *
 from utils import *
 from nltk.translate.bleu_score import corpus_bleu
+from tokenizer import Tokenizer
 
 # Data parameters
-data_folder = '../../1. data_v2/json'  # folder with data files saved by create_input_files.py
+data_folder = '../../1. data/json_v2'  # folder with data files saved by create_input_files.py
 data_name = 'coco_5_cap_per_img_5_min_word_freq'  # base name shared by data files
 
 # Model parameters
@@ -203,8 +204,8 @@ def train(train_loader, encoder, decoder, criterion, encoder_optimizer, decoder_
 
         # Remove timesteps that we didn't decode at, or are pads
         # pack_padded_sequence is an easy trick to do this
-        scores, _ = pack_padded_sequence(scores, decode_lengths, batch_first=True)
-        targets, _ = pack_padded_sequence(targets, decode_lengths, batch_first=True)
+        scores = pack_padded_sequence(scores, decode_lengths, batch_first=True).data
+        targets = pack_padded_sequence(targets, decode_lengths, batch_first=True).data
 
         # Calculate loss
         loss = criterion(scores, targets)
@@ -294,8 +295,8 @@ def validate(val_loader, encoder, decoder, criterion):
             # Remove timesteps that we didn't decode at, or are pads
             # pack_padded_sequence is an easy trick to do this
             scores_copy = scores.clone()
-            scores = pack_padded_sequence(scores, decode_lengths, batch_first=True)
-            targets = pack_padded_sequence(targets, decode_lengths, batch_first=True)
+            scores = pack_padded_sequence(scores, decode_lengths, batch_first=True).data
+            targets = pack_padded_sequence(targets, decode_lengths, batch_first=True).data
 
             # Calculate loss
             loss = criterion(scores, targets)
