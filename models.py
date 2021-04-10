@@ -1,6 +1,8 @@
 import torch
 from torch import nn
 import torchvision
+from tokenizer import Tokenizer
+from kobert.pytorch_kobert import get_pytorch_kobert_model
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -8,10 +10,10 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 tokenizer = Tokenizer()
 
 # Load pre-trained model (weights) (KOBERT)
-BertModel = get_pytorch_kobert_model()
+BertModel, _ = get_pytorch_kobert_model()
 BertModel.eval()
 
-PAD_index = 1
+PAD_INDEX = 1
 
 '''
     - resnet에서 뒤의 2개의 레이어 제거한 후, fine-tuning 진행하는 코드
@@ -215,6 +217,8 @@ class DecoderWithAttention(nn.Module):
         encoder_out = encoder_out.view(batch_size, -1, encoder_dim)  # (batch_size, num_pixels, encoder_dim)
         num_pixels = encoder_out.size(1)
 
+        max_dec_len = caption_lengths.reshape(-1).max().item()
+
         # Sort input data by decreasing lengths; why? apparent below
         # caption_lengths -> (batch_size, 1)
         # caption_lengths.squeeze(1) -> (batch_size)
@@ -230,19 +234,19 @@ class DecoderWithAttention(nn.Module):
             embeddings = []
             for cap_idx in encoded_captions:
                 while len(cap_idx) < max_dec_len:
-                    cap_idx.append(PAD_index)  # PAD (1)
+                    cap_idx.append(PAD_INDEX)  # PAD (1)
 
                 cap = " ".join(tokenizer.convert_ids_to_tokens(cap_idx))
 
-                tokenized_cap = tokenizer.tokenize(cap)
+                tokenized_cap = tokenizer.convert_ids_to_tokens(cap_idx)
                 indexed_tokens = tokenizer.convert_tokens_to_ids(tokenized_cap)
-                tokens_tensor = torch.tensor([indexed_tokens]).to(device)
+                tokens_tensor = torch.tensor([indexed_tokens])
 
                 bert_embedding, _ = BertModel(tokens_tensor)
                 bert_embedding = bert_embedding.squeeze(0)
-                embeddings.append(embeddings)
+                embeddings.append(bert_embedding)
 
-            embeddings = torch.stack(embeddings)
+            embeddings = torch.stack(embeddings).to(device)
 
         # Initialize LSTM state
         # encoder_out : (batch_size, num_pixels, encoder_dim)
