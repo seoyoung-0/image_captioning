@@ -63,7 +63,7 @@ def create_input_files(dataset, karpathy_json_path, image_folder, captions_per_i
             val_image_captions.append(captions)
 
     # Sanity check
-    assert len(train_image_paths) == len(train_image_captions)
+    assert len(train_image_paths) == len(train_image_captions) #이미지 개수랑 캡션 개수 일치하는지 
     assert len(val_image_paths) == len(val_image_captions)
 
 
