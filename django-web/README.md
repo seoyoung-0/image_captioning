@@ -10,6 +10,10 @@
   ```
   myvenv\Scripts\activate
   ```
+  * requirements.txt 설치
+  ```
+  pip install -r requirements.txt
+  ```
   * runserver ( 127.0.0.1:8000 사용 )
   ```
   python manage.py runserver
