@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+
+
+<h2>이미지를 첨부하세요 !</h2>
+
+<div>
+<form action="{% url 'create' %}" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="file" name="image">
+    <input type="submit" value="submit">
+</form>
+</div>
+
+{% endblock %}
