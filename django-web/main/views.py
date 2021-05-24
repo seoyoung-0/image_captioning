@@ -12,11 +12,12 @@ def create(request):
     post.save()
     return redirect('/result')
 
-# create -> 모델로 사진 전달
-# result 에서 캡션이랑 이미지 result.html 로 전달
+
 # 모델 결과 리턴 화면
 def result(request):
     post = Post.objects.last()
+
+    #여기서 모델로 사진 전달 후, caption 받아서 context 에 합치기
     caption='코로 피리부는 소년'
 
     context = {

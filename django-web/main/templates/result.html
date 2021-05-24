@@ -3,23 +3,38 @@
 <style>
 .container{
     position : absolute;
-    top:45%;
+    top:50%;
     left:50%;
-    width:500px;
-    height:680px;
-    margin-left: -250px;
-    margin-top:-340px;
+    width:600px;
+    height:800px;
+    margin-left: -300px;
+    margin-top:-400px;
     padding-top:40px;
     border : 1px #060561 solid;
 }
 .row{
     text-align : center;
 }
+.title{
+    margin:0;
+    display: block;
+    color : #28a745;
+    font-size: 1.75em;
+    font-weight: bold;
+}
+.subtitle{
+    margin :0;
+    display: block;
+    color : #68796c;
+    font-size: 0.95em;
+    font-weight: bold;
+    padding-bottom: 7%;
+}
 .imgtitle{
     color : #033b03;
     font-size: 1.15em;
     font-weight: bold;
-    padding-bottom: 5%;
+    padding-bottom: 3%;
 }
 .caption{
     color : #033b03;
@@ -49,6 +64,12 @@
 </style>
 <body>
     <div class="container">
+        <div class="row justify-content-center">
+            <h2 class="title">딥러닝을 활용한 캡션 생성기</h2>
+        </div>
+        <div class="row justify-content-center" id="second">
+            <p class="subtitle">사용자의 이미지를 설명하는 캡션 생성을 위한 웹앱입니다.</p>
+        </div>
         <div class="row justify-content-center">
             <h2 class="imgtitle">입력된 이미지</h2>
         </div>
