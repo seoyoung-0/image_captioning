@@ -1,13 +1,69 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
+{% block content %}
+<style>
+.container{
+    position : absolute;
+    top:45%;
+    left:50%;
+    width:500px;
+    height:680px;
+    margin-left: -250px;
+    margin-top:-340px;
+    padding-top:40px;
+    border : 1px #060561 solid;
+}
+.row{
+    text-align : center;
+}
+.imgtitle{
+    color : #033b03;
+    font-size: 1.15em;
+    font-weight: bold;
+    padding-bottom: 5%;
+}
+.caption{
+    color : #033b03;
+    font-size: 1.15em;
+    font-weight: bold;
+}
+.realcaption{
+    color : #060561;
+    font-size: 1.75em;
+    font-weight: bold;
+}
+.image{
+    width : 380px;
+    height: 380px;
+}
+#first{
+    padding-top:5%;
     
-    <img src="{{ context.post.image.url }}">
+}
+#second{
+    padding-top: 5%;
+}
+#third{
+    padding-top: 5%;
+}
 
-    <h4>{{context.caption}}</h4>
+</style>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <h2 class="imgtitle">입력된 이미지</h2>
+        </div>
+        <div class="row justify-content-center">
+            <img class="image" src="{{ context.post.image.url }}">
+        </div>
+        <div class="row justify-content-center" id="first">
+            
+        </div>
+        <div class="row justify-content-center" id="second">
+            <h3 class="caption">생성된 캡션입니다</h3>
+        </div>        
+        <div class="row justify-content-center" id="third">
+            <h4 class="realcaption">"{{context.caption}}"</h4>
+        </div>
+    </div>
 </body>
-</html>
+{% endblock %}

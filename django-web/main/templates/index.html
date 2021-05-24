@@ -1,15 +1,64 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+.container{
+    position : absolute;
+    top:45%;
+    left:50%;
+    width:500px;
+    height:400px;
+    margin-left: -250px;
+    margin-top:-200px;
+    padding-top:50px;
+    border : 1px #060561 solid;
+}
+.row{
+height:50px;
+}
+.title{
+    margin:0;
+    display: block;
+    color : #28a745;
+    font-size: 1.75em;
+    font-weight: bold;
+}
+.subtitle{
+    margin :0;
+    display: block;
+    color : #68796c;
+    font-size: 0.95em;
+    font-weight: bold;
+}
+.desc{
+    margin :0;
+    display: block;
+    color : #033b03;
+    font-size: 1.25em;
+    font-weight: bold;
+    padding-bottom: 3%;
+}
 
+#third{
+    padding-top: 10%;
+}
+</style>
 
-<h2>이미지를 첨부하세요 !</h2>
+<div class="container">
+    <div class="row justify-content-center">
+        <h2 class="title">딥러닝을 활용한 캡션 생성기</h2>
+    </div>
+    <div class="row justify-content-center" id="second">
+        <p class="subtitle">사용자의 이미지를 설명하는 캡션 생성을 위한 웹앱입니다.</p>
+    </div>
+    <div class="row justify-content-center" id="third">
+        <p class="desc">이미지를 첨부하세요</p>
+        <form action="{% url 'create' %}" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <input type="file" name="image" id="file_btn">
+            <button class="btn btn-success" type="submit">입력</button>
+        </form>
+    </div>
 
-<div>
-<form action="{% url 'create' %}" method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    <input type="file" name="image">
-    <input type="submit" value="submit">
-</form>
 </div>
-
 {% endblock %}
